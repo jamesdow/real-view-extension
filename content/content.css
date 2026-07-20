@@ -19,14 +19,14 @@ img.realview-real-tagged {
 }
 
 img.realview-scanning {
-  outline: 2px dashed rgba(245, 197, 24, 0.6);
+  outline: 2px dashed rgba(143, 227, 192, 0.6);
   outline-offset: -2px;
   animation: realview-scan-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes realview-scan-pulse {
-  0%, 100% { outline-color: rgba(245, 197, 24, 0.2); }
-  50% { outline-color: rgba(245, 197, 24, 0.75); }
+  0%, 100% { outline-color: rgba(143, 227, 192, 0.2); }
+  50% { outline-color: rgba(143, 227, 192, 0.75); }
 }
 
 #realview-hud {
@@ -58,7 +58,7 @@ img.realview-scanning {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f5c518;
+  background: #8FE3C0;
   animation: realview-hud-dot-pulse 1s ease-in-out infinite;
 }
 

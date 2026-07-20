@@ -17,7 +17,7 @@ section {
   padding: 20px 0;
 }
 
-h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: #f5c518; margin: 0 0 12px; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: #8FE3C0; margin: 0 0 12px; }
 
 .badge {
   display: inline-block;
@@ -34,7 +34,7 @@ h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
   vertical-align: middle;
 }
 
-.hint a { color: #f5c518; }
+.hint a { color: #8FE3C0; }
 
 .check {
   display: flex;
@@ -63,7 +63,7 @@ input[type="text"], textarea {
 }
 
 .upgrade-btn, .save-btn {
-  background: linear-gradient(135deg, #f5c518, #e0a800);
+  background: linear-gradient(135deg, #8FE3C0, #5FBE99);
   color: #0f0f10;
   font-weight: 600;
   font-size: 13px;
@@ -95,5 +95,5 @@ input[type="text"], textarea {
 
 .made-by { text-align: center; padding-top: 28px; }
 .made-by .hint { margin: 0; }
-.made-by a { color: #f5c518; text-decoration: none; }
+.made-by a { color: #8FE3C0; text-decoration: none; }
 .made-by a:hover { text-decoration: underline; }

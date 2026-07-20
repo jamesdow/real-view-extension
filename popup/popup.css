@@ -21,7 +21,7 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #f5c518;
+  background: #8FE3C0;
 }
 
 .title { font-weight: 600; font-size: 15px; flex: 1; }
@@ -47,7 +47,7 @@ body {
   content: ""; position: absolute; width: 18px; height: 18px;
   left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.15s;
 }
-input:checked + .slider { background: #f5c518; }
+input:checked + .slider { background: #8FE3C0; }
 input:checked + .slider::before { transform: translateX(18px); }
 
 .segmented {
@@ -65,7 +65,7 @@ input:checked + .slider::before { transform: translateX(18px); }
   border-radius: 6px;
   cursor: pointer;
 }
-.seg-btn.active { background: #f5c518; color: #17181a; font-weight: 600; }
+.seg-btn.active { background: #8FE3C0; color: #17181a; font-weight: 600; }
 
 .row-disabled { opacity: 0.4; pointer-events: none; }
 
@@ -77,11 +77,11 @@ input:checked + .slider::before { transform: translateX(18px); }
   border-radius: 8px;
 }
 .nudge p { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: #e4d9ab; }
-.nudge strong { color: #f5c518; }
+.nudge strong { color: #8FE3C0; }
 .nudge-btn {
   width: 100%;
   padding: 7px 0;
-  background: #f5c518;
+  background: #8FE3C0;
   color: #17181a;
   font-weight: 600;
   font-size: 12px;
