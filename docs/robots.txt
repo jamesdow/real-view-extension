@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://jamesdow.github.io/real-view-extension/sitemap.xml
+Sitemap: https://userealview.com/sitemap.xml
