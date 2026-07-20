@@ -238,5 +238,5 @@ lib/transformers/            Vendored WASM runtime (ort.wasm.min.mjs + .wasm bin
 popup/                       Toolbar popup — per-site pause + the AI Images switch
 options/                     Settings — deep-scan toggle, visual detection, custom domains,
                               blocklist refresh, flagged-images management
-icons/                       Generated placeholder icons (marigold ring on dark)
+icons/                       Brand mark icons (marigold ring on dark), matching the website
 ```
