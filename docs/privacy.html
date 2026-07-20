@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — Real View</title>
+<meta name="description" content="Real View's privacy policy — exactly what runs on-device, what network requests happen and why, and what's never collected." />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,450;0,9..144,600;0,9..144,680;1,9..144,450&family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --bg-1:#131315;
+    --bg-2:#1b1b1e;
+    --line:rgba(242,240,234,0.09);
+    --line-strong:rgba(242,240,234,0.16);
+    --fg:#f2f0ea;
+    --fg-dim:#a6a299;
+    --fg-faint:#726e64;
+    --gold:#f5c518;
+    --green:#3fb768;
+    --serif:'Fraunces', ui-serif, Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Archivo', ui-sans-serif, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--gold); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 32px;}
+
+  header{
+    position:sticky; top:0; z-index:10;
+    background:rgba(11,11,12,0.82);
+    backdrop-filter:blur(14px) saturate(1.1);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex; align-items:center; justify-content:space-between; height:72px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--serif); font-weight:600; font-size:20px;}
+  .brand .mark{width:26px; height:26px; display:block;}
+  .back{font-family:var(--mono); font-size:13px; color:var(--fg-dim); text-decoration:none;}
+  .back:hover{color:var(--gold);}
+
+  main{padding:64px 0 100px;}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--gold); margin:0 0 16px;
+  }
+  h1{font-family:var(--serif); font-weight:600; font-size:clamp(32px,5vw,48px); line-height:1.1; margin:0 0 12px;}
+  .updated{font-family:var(--mono); font-size:12px; color:var(--fg-faint); margin:0 0 48px;}
+
+  h2{font-family:var(--serif); font-weight:600; font-size:22px; margin:48px 0 16px;}
+  h2:first-of-type{margin-top:0;}
+  p{font-size:15px; line-height:1.7; color:var(--d0cfc9,#d0cfc9); margin:0 0 16px;}
+  p, li{color:#d0cfc9;}
+  ul{margin:0 0 16px; padding-left:22px;}
+  li{font-size:15px; line-height:1.7; margin-bottom:10px;}
+  strong{color:var(--fg);}
+
+  .destinations{
+    border:1px solid var(--line-strong); border-radius:12px; overflow:hidden;
+    margin:24px 0;
+  }
+  .dest-row{
+    display:grid; grid-template-columns:1fr 2fr; gap:16px;
+    padding:18px 20px; border-bottom:1px solid var(--line);
+  }
+  .dest-row:last-child{border-bottom:none;}
+  .dest-name{font-family:var(--mono); font-size:13px; color:var(--gold);}
+  .dest-desc{font-size:13.5px; line-height:1.6; color:var(--fg-dim);}
+
+  .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin:24px 0 8px;}
+  .pill{
+    font-family:var(--mono); font-size:12px; color:var(--fg-dim);
+    border:1px solid var(--line-strong); border-radius:999px; padding:8px 16px;
+  }
+
+  footer{border-top:1px solid var(--line); padding:32px 0; margin-top:40px;}
+  .foot-row{font-family:var(--mono); font-size:12px; color:var(--fg-faint);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="12" stroke="#f5c518" stroke-width="1.6"/>
+        <path d="M8 13a5 5 0 0 1 5-5" stroke="#f5c518" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="17.5" cy="8.5" r="2.2" fill="#f5c518"/>
+      </svg>
+      Real View
+    </div>
+    <a class="back" href="index.html">← Back to Real View</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <span class="eyebrow">PRIVACY POLICY</span>
+    <h1>What Real View does with your data. In short: nothing.</h1>
+    <p class="updated">Last updated 16 July 2026</p>
+
+    <h2>The short version</h2>
+    <p>
+      Real View is a Chrome extension, built and maintained by one person, that looks at
+      images on the pages you visit and flags ones that appear to be AI-generated. There
+      is no account, no analytics, no advertising, and — this is the important part —
+      <strong>no server operated by Real View or its developer that anything is ever sent to</strong>.
+      Everything below exists to back that claim up in specific, checkable detail, not
+      just assert it.
+    </p>
+
+    <h2>Why the extension can read pages you visit</h2>
+    <p>
+      Real View asks for permission to run on every site (rather than just sites you
+      click "activate" on) because AI-generated images can appear anywhere — a social
+      feed, a search engine, a news article, a shop listing. The extension's one job is
+      to look at whatever images are actually on the page in front of you, so it needs to
+      be able to run wherever that page happens to be. It does not track which pages
+      you've visited, build a browsing history, or send that information anywhere —
+      it only ever looks at the images on the page currently open, in the moment, to
+      decide whether to blur or flag them.
+    </p>
+
+    <h2>What actually happens, in three layers</h2>
+    <p>
+      <strong>1. Metadata &amp; source-domain check (always on).</strong> Real View
+      reads embedded generator tags already present in an image file, and compares the
+      image's source domain against a large list of known AI-generation platforms
+      (which you can refresh manually — see below). This runs locally in your browser.
+    </p>
+    <p>
+      <strong>2. On-device visual model (opt-in).</strong> If you turn this on, a
+      machine-learning model examines the actual pixels of images the first check
+      couldn't classify. This model runs entirely inside your browser via WebAssembly,
+      in a background document Chrome keeps alive for it. No image, and no result of
+      classifying it, ever leaves your device. There is no cloud version of this
+      feature — it either runs on your machine, or it doesn't run.
+    </p>
+    <p>
+      <strong>3. Your own corrections (personal, local).</strong> Right-clicking an
+      image to flag it as AI-generated or real is stored in your browser's local
+      storage only. It is never transmitted anywhere, and it's specific to you.
+    </p>
+
+    <h2>The exact network requests Real View makes, and why</h2>
+    <p>None of the following involve sending anything about you, your browsing, or your images to anyone. Here's precisely what each one is:</p>
+    <div class="destinations">
+      <div class="dest-row">
+        <div class="dest-name">The image's own host</div>
+        <div class="dest-desc">To read embedded metadata, Real View re-fetches the first part of an image file directly from wherever the page already loaded it from — the same file, the same source, nothing new sent anywhere else.</div>
+      </div>
+      <div class="dest-row">
+        <div class="dest-name">GitHub (raw.githubusercontent.com)</div>
+        <div class="dest-desc">A public, community-maintained blocklist of known AI-image domains ("Huge AI Blocklist"). Only fetched when you click "Refresh AI blocklist now" in Options — never automatically or in the background.</div>
+      </div>
+      <div class="dest-row">
+        <div class="dest-name">Hugging Face (huggingface.co)</div>
+        <div class="dest-desc">The visual-model file itself, fetched once when you opt in and cached on your device afterward (via the browser's Cache Storage). No further requests happen once it's cached, and it can be deleted at any time from Options.</div>
+      </div>
+      <div class="dest-row">
+        <div class="dest-name">Pinterest (pinterest.com)</div>
+        <div class="dest-desc">Only on pinterest.com itself: re-requests a pin's own public detail page to resolve its original source link, the same way clicking that pin in your browser would. Nothing is sent to Pinterest beyond a normal page request.</div>
+      </div>
+    </div>
+
+    <h2>What's stored, and where</h2>
+    <p>
+      Your settings (whether AI images are hidden, blur vs. hide, whether the visual
+      model is on) are stored via <code>chrome.storage.sync</code> — this is Chrome's
+      own built-in sync, tied to your Google account if you have Chrome sync enabled,
+      not anything Real View operates. Your personal image flags, the cached blocklist,
+      and model-update-check state are stored via <code>chrome.storage.local</code> —
+      device-only, never synced anywhere. Both are entirely within Chrome's own storage
+      system; Real View has no database or server of its own to store anything in.
+    </p>
+
+    <h2>What Real View does not do</h2>
+    <div class="pillrow">
+      <span class="pill">No accounts or sign-in</span>
+      <span class="pill">No analytics or telemetry</span>
+      <span class="pill">No advertising or ad IDs</span>
+      <span class="pill">No sale or sharing of data</span>
+      <span class="pill">No third-party SDKs</span>
+      <span class="pill">Not directed at children</span>
+    </div>
+
+    <h2>Deleting your data</h2>
+    <p>
+      Uninstalling the extension removes everything Chrome stored for it. You can also
+      clear your flagged images and delete the downloaded visual model at any time from
+      the Options page, without uninstalling.
+    </p>
+
+    <h2>Changes to this policy</h2>
+    <p>
+      If what Real View does ever changes in a way that affects this policy, this page
+      will be updated and the date at the top will change. Real View is open source —
+      you can verify any of the claims on this page directly against the source code,
+      linked from the footer of the main site.
+    </p>
+
+    <h2>Questions</h2>
+    <p>
+      Open an issue on the GitHub repository linked from the homepage — that's the
+      most reliable way to reach the person who actually maintains this.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot-row">Real View — <a href="index.html">back to homepage</a></div>
+</footer>
+
+</body>
+</html>

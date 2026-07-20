@@ -1,0 +1,5 @@
+.DS_Store
+
+# Raw source photos used to derive docs/images/cat-*.jpg — not referenced by the extension
+# or the website itself, no need to ship them in the repo.
+/images/

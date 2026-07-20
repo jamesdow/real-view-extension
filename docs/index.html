@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Real View — hide AI-generated images, see what's actually real</title>
+<meta name="description" content="Real View is a Chrome extension that hides AI-generated images across Google, Bing, DuckDuckGo and Pinterest with a single toggle. Block AI art, filter AI photos, find real reference images — private by design, nothing you see is ever uploaded." />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+
+<!-- Fill in the real deployed URL in these three spots once the site is live (GitHub Pages
+     or otherwise) — left as relative/placeholder for now since nothing is hosted yet. -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Real View — hide AI-generated images, see what's actually real" />
+<meta property="og:description" content="A Chrome extension that hides AI-generated images across Google, Bing, DuckDuckGo and Pinterest with a single toggle. Private by design — nothing you see is ever uploaded." />
+<meta property="og:image" content="og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Real View — hide AI-generated images, see what's actually real" />
+<meta name="twitter:description" content="A Chrome extension that hides AI-generated images across Google, Bing, DuckDuckGo and Pinterest with a single toggle. Private by design — nothing you see is ever uploaded." />
+<meta name="twitter:image" content="og-image.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,450;0,9..144,600;0,9..144,680;1,9..144,450&family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --bg-1:#131315;
+    --bg-2:#1b1b1e;
+    --line:rgba(242,240,234,0.09);
+    --line-strong:rgba(242,240,234,0.16);
+    --fg:#f2f0ea;
+    --fg-dim:#a6a299;
+    --fg-faint:#726e64;
+    --gold:#f5c518;
+    --gold-deep:#caa000;
+    --green:#3fb768;
+    --serif:'Fraunces', ui-serif, Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Archivo', ui-sans-serif, sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* film grain overlay — absolute (not fixed), no blend-mode: keeps compositing cheap
+     and avoids a full-viewport fixed blend layer painting solid in some renderers. */
+  body::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:100%;
+    z-index:999;
+    pointer-events:none;
+    opacity:0.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a{color:inherit;}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px; height:7px; border-radius:50%;
+    background:var(--gold);
+    box-shadow:0 0 0 4px rgba(245,197,24,0.15);
+    animation:dot-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes dot-pulse{
+    0%,100%{ box-shadow:0 0 0 4px rgba(245,197,24,0.15); }
+    50%{ box-shadow:0 0 0 7px rgba(245,197,24,0.05); }
+  }
+
+  /* reveal-on-scroll, staggered via --d set per-child in JS */
+  .reveal{
+    opacity:0; transform:translateY(24px);
+    transition:opacity 0.7s cubic-bezier(.16,.8,.24,1), transform 0.7s cubic-bezier(.16,.8,.24,1);
+    transition-delay:calc(var(--d, 0) * 80ms);
+  }
+  .reveal.in{opacity:1; transform:translateY(0);}
+
+  /* ---------- header ---------- */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:200;
+    background:rgba(11,11,12,0.72);
+    backdrop-filter:blur(14px) saturate(1.1);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex; align-items:center; justify-content:space-between; height:72px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--serif); font-weight:600; font-size:20px; letter-spacing:0.01em;}
+  .brand .mark{width:26px; height:26px; display:block;}
+  .navlinks{display:flex; align-items:center; gap:32px; font-size:14px; color:var(--fg-dim);}
+  .navlinks a{text-decoration:none; transition:color 0.15s; position:relative;}
+  .navlinks a::after{
+    content:""; position:absolute; left:0; right:100%; bottom:-4px; height:1px; background:var(--gold);
+    transition:right 0.2s ease;
+  }
+  .navlinks a:hover{color:var(--fg);}
+  .navlinks a:hover::after{right:0;}
+  .navlinks{display:none;}
+  @media(min-width:900px){ .navlinks{display:flex;} }
+
+  .btn{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:0.03em;
+    font-weight:500;
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 20px;
+    border-radius:8px;
+    text-decoration:none;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-gold{ background:var(--gold); color:#171400; }
+  .btn-gold:hover{ box-shadow:0 0 0 3px rgba(245,197,24,0.22); transform:translateY(-1px); }
+  .btn-ghost{ border-color:var(--line-strong); color:var(--fg); }
+  .btn-ghost:hover{ border-color:var(--gold); color:var(--gold); }
+  .btn-sm{padding:9px 14px; font-size:12px;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:180px 0 150px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; top:-20%; right:-10%; width:60%; height:70%;
+    background:radial-gradient(circle, rgba(245,197,24,0.10), transparent 65%);
+    filter:blur(20px);
+    animation:drift 16s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; bottom:-25%; left:-15%; width:50%; height:60%;
+    background:radial-gradient(circle, rgba(63,183,104,0.06), transparent 65%);
+    filter:blur(20px);
+    animation:drift 20s ease-in-out infinite reverse;
+    pointer-events:none;
+  }
+  @keyframes drift{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    50%{ transform:translate(-4%,3%) scale(1.08); }
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1fr; gap:56px; align-items:start;
+    position:relative; z-index:1;
+  }
+  @media(min-width:980px){ .hero-grid{grid-template-columns:1.05fr 0.95fr; gap:40px; align-items:center;} }
+
+  h1.headline{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(40px, 6vw, 74px);
+    line-height:1.02;
+    letter-spacing:-0.01em;
+    margin:22px 0 22px;
+  }
+  h1.headline em{
+    font-style:italic;
+    font-weight:450;
+    color:var(--gold);
+    position:relative;
+  }
+  .lede{
+    font-size:18px;
+    line-height:1.6;
+    color:var(--fg-dim);
+    max-width:46ch;
+    margin:0 0 34px;
+  }
+  .hero-ctas{display:flex; flex-wrap:wrap; gap:14px; align-items:center;}
+  .hero-note{
+    margin-top:18px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--fg-faint);
+  }
+  .hero-note a{ color:var(--gold); text-decoration:none; }
+  .hero-note a:hover{ text-decoration:underline; }
+
+  /* ---------- interactive demo + master switch ---------- */
+  /* One continuous physical object — switch console fused to the browser window below it,
+     not a separate floating pill overlapping it. Same rounded-rect language, no seam. */
+  .demo-stage{
+    position:relative;
+    border-radius:18px;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,0.6);
+  }
+  .switch-console{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    background:linear-gradient(180deg, #26262a, #1a1a1d);
+    border:1px solid var(--line-strong);
+    border-bottom:1px solid var(--line);
+    border-radius:18px 18px 0 0;
+    padding:16px 22px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  .switch-console-label{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.1em; color:var(--fg-dim); font-weight:500;
+  }
+  .switch-console-state{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.06em; color:var(--fg-faint); min-width:30px;
+  }
+  .switch-console.on .switch-console-state{ color:var(--gold); }
+
+  .toggle-lg{
+    --w:74px; --h:40px;
+    width:var(--w); height:var(--h);
+    border-radius:999px;
+    background:var(--bg);
+    border:1px solid var(--line-strong);
+    position:relative;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .toggle-lg::after{
+    content:"";
+    position:absolute; top:3px; left:3px;
+    width:32px; height:32px; border-radius:50%;
+    background:var(--fg-dim);
+    transition:transform 0.32s cubic-bezier(.2,.8,.3,1.2), background 0.25s ease;
+  }
+  .toggle-lg.on{ background:rgba(245,197,24,0.18); border-color:var(--gold); box-shadow:0 0 0 6px rgba(245,197,24,0.1), 0 0 24px rgba(245,197,24,0.25); animation:switch-glow 2.4s ease-in-out infinite; }
+  .toggle-lg.on::after{ transform:translateX(34px); background:var(--gold); }
+  @keyframes switch-glow{
+    0%,100%{ box-shadow:0 0 0 6px rgba(245,197,24,0.1), 0 0 24px rgba(245,197,24,0.25); }
+    50%{ box-shadow:0 0 0 9px rgba(245,197,24,0.06), 0 0 34px rgba(245,197,24,0.4); }
+  }
+
+  .demo{
+    position:relative;
+    border-radius:0 0 18px 18px;
+    background:linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border:1px solid var(--line-strong);
+    border-top:none;
+    overflow:hidden;
+  }
+  .demo-chrome{
+    display:flex; align-items:center; gap:8px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .demo-dot{width:9px; height:9px; border-radius:50%; background:var(--fg-faint); opacity:0.5;}
+  .demo-url{
+    margin-left:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--fg-faint);
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--line);
+    padding:5px 12px;
+    border-radius:6px;
+    flex:1;
+  }
+  .demo-body{padding:20px;}
+  .tile-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  .tile{
+    position:relative;
+    aspect-ratio:3/4;
+    border-radius:9px;
+    overflow:hidden;
+  }
+  .tile img, .tile .art{width:100%; height:100%; object-fit:cover; display:block; transition:filter 0.5s cubic-bezier(.2,.7,.3,1), saturate 0.5s;}
+  .tile .badge{
+    position:absolute; left:6px; bottom:6px;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.04em;
+    padding:3px 6px; border-radius:4px;
+    background:rgba(11,11,12,0.72);
+    color:var(--green);
+    border:1px solid rgba(63,183,104,0.4);
+    opacity:0; transition:opacity 0.3s;
+  }
+  .tile[data-kind="ai"] .badge{
+    color:var(--gold); border-color:rgba(245,197,24,0.45);
+  }
+
+  .demo.hide-on .tile[data-kind="ai"] .art{ filter:blur(14px) saturate(0.5); }
+  .demo.hide-on .tile .badge{ opacity:1; }
+
+  /* faux photo/art gradients — no external images needed */
+  .art-real-1{background:radial-gradient(120% 140% at 20% 15%, #6b6154, #2a2620 60%, #17150f); }
+  .art-real-2{background:radial-gradient(120% 140% at 80% 20%, #71685c, #322c22 55%, #18150f);}
+  .art-real-3{background:radial-gradient(130% 140% at 30% 80%, #5c655f, #26302a 55%, #12160f);}
+  .art-ai-1{background:conic-gradient(from 200deg at 40% 40%, #ff7dd8, #7b6bff, #57e0ff, #ff7dd8);}
+  .art-ai-2{background:conic-gradient(from 60deg at 60% 30%, #ffd36b, #ff6b9e, #8a5bff, #ffd36b);}
+  .art-ai-3{background:conic-gradient(from 320deg at 50% 60%, #63f2c9, #5b8dff, #d16bff, #63f2c9);}
+
+  /* ---------- section shell ---------- */
+  section{position:relative; padding:120px 0;}
+  .section-head{max-width:640px; margin-bottom:64px;}
+  .section-head h2{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(30px, 4vw, 46px);
+    line-height:1.08;
+    margin:18px 0 0;
+  }
+  .section-head p{color:var(--fg-dim); font-size:16px; line-height:1.65; margin:18px 0 0; max-width:56ch;}
+
+  /* ---------- HUD demo ---------- */
+  .hud-demo{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:0 0 56px;}
+  .hud-chip{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(15,15,16,0.92); color:#f2f2f0;
+    font:12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding:8px 12px; border-radius:999px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.35);
+    border:1px solid var(--line-strong);
+    flex-shrink:0;
+  }
+  .hud-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--gold);
+    animation:hud-dot-pulse 1s ease-in-out infinite;
+  }
+  @keyframes hud-dot-pulse{
+    0%,100%{opacity:0.35; transform:scale(0.85);}
+    50%{opacity:1; transform:scale(1.1);}
+  }
+  .hud-caption{color:var(--fg-dim); font-size:14px; line-height:1.6; max-width:46ch; margin:0;}
+
+  /* ---------- problem statement ---------- */
+  .statement{
+    border-bottom:1px solid var(--line);
+  }
+  .statement blockquote{
+    font-family:var(--serif);
+    font-style:italic;
+    font-weight:450;
+    font-size:clamp(26px, 3.4vw, 42px);
+    line-height:1.35;
+    max-width:920px;
+    margin:0;
+  }
+  .statement .attribution{
+    margin-top:28px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--fg-faint);
+  }
+
+  /* ---------- signal stack (horizontal) ---------- */
+  .stack{
+    display:grid; grid-template-columns:1fr; gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  }
+  @media(min-width:900px){ .stack{grid-template-columns:repeat(3,1fr);} }
+  .stack-item{
+    background:var(--bg);
+    padding:36px 30px;
+    display:flex; flex-direction:column; align-items:flex-start;
+    transition:background 0.2s;
+  }
+  .stack-item:hover{ background:var(--bg-1); }
+  .stack-icon{
+    position:relative;
+    width:52px; height:52px; border-radius:14px;
+    background:linear-gradient(160deg, var(--bg-2), var(--bg-1));
+    border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold);
+    margin-bottom:20px;
+  }
+  .stack-check{
+    position:absolute; bottom:-6px; right:-6px;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--green); color:#06210f;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--bg);
+    font-size:11px; font-weight:700;
+  }
+  .stack-num{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--fg-faint);
+    margin-bottom:10px;
+    letter-spacing:0.08em;
+  }
+  .stack-item h3{
+    font-family:var(--serif); font-weight:600; font-size:21px; margin:0 0 10px;
+  }
+  .stack-item p{color:var(--fg-dim); font-size:14.5px; line-height:1.65; margin:0; flex:1;}
+  .stack-item p strong{color:var(--gold); font-weight:600;}
+  .stack-tag{
+    display:inline-block; margin-top:16px;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--fg-faint); border:1px solid var(--line-strong); border-radius:999px; padding:4px 10px;
+  }
+
+  /* ---------- works-on marquee ---------- */
+  .works-on{ padding-bottom:100px; }
+  .marquee{
+    overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    padding:30px 0;
+  }
+  .marquee-track{
+    display:flex; align-items:center; gap:56px;
+    width:max-content;
+    animation:marquee 22s linear infinite;
+  }
+  .marquee:hover .marquee-track{ animation-play-state:paused; }
+  @keyframes marquee{
+    from{ transform:translateX(0); }
+    to{ transform:translateX(-50%); }
+  }
+  .logo-chip{
+    font-family:var(--serif); font-weight:600; font-size:26px; color:var(--fg-faint);
+    display:flex; align-items:center; gap:10px; white-space:nowrap;
+    transition:color 0.2s;
+  }
+  .logo-chip:hover{ color:var(--gold); }
+  .logo-chip .dot{width:6px; height:6px; border-radius:50%; background:var(--line-strong);}
+
+  /* ---------- use cases ---------- */
+  .usecase-grid{
+    display:grid; grid-template-columns:1fr; gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  }
+  @media(min-width:860px){ .usecase-grid{grid-template-columns:repeat(3,1fr);} }
+  .usecase{
+    position:relative;
+    background:var(--bg);
+    padding:38px 28px 30px;
+    overflow:hidden;
+    transition:background 0.2s;
+  }
+  .usecase:hover{ background:var(--bg-1); }
+  .usecase-num{
+    position:absolute; top:-18px; right:-6px;
+    font-family:var(--serif); font-weight:680; font-size:130px; line-height:1;
+    color:transparent;
+    -webkit-text-stroke:1px var(--line-strong);
+    pointer-events:none;
+    user-select:none;
+  }
+  .usecase h3{
+    font-family:var(--serif); font-weight:600; font-size:20px; margin:8px 0 10px; position:relative;
+  }
+  .usecase p{ color:var(--fg-dim); font-size:14.5px; line-height:1.65; margin:0; position:relative; max-width:32ch;}
+
+  /* ---------- features ---------- */
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(1, 1fr); gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  }
+  @media(min-width:720px){ .feature-grid{grid-template-columns:repeat(2, 1fr);} }
+  @media(min-width:1080px){ .feature-grid{grid-template-columns:repeat(3, 1fr);} }
+  .feature{
+    background:var(--bg); padding:30px 28px; min-height:190px;
+    display:flex; flex-direction:column; justify-content:flex-start;
+    transition:background 0.2s, transform 0.2s;
+  }
+  .feature:hover{background:var(--bg-1); transform:translateY(-2px);}
+  .feature .ficon{
+    width:34px; height:34px; margin-bottom:18px;
+    color:var(--gold);
+  }
+  .feature h4{font-family:var(--serif); font-size:18px; font-weight:600; margin:0 0 8px;}
+  .feature p{color:var(--fg-dim); font-size:14px; line-height:1.6; margin:0;}
+  .feature p a{color:var(--gold); text-decoration:none;}
+  .feature p a:hover{text-decoration:underline;}
+
+  /* ---------- privacy statement ---------- */
+  .privacy{
+    text-align:center;
+    padding:150px 0;
+    position:relative;
+    overflow:hidden;
+    background:var(--bg-1);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .privacy::before{
+    content:"";
+    position:absolute; inset:0;
+    background:radial-gradient(60% 60% at 50% 0%, rgba(245,197,24,0.08), transparent 70%);
+    animation:pulse-bg 6s ease-in-out infinite;
+  }
+  @keyframes pulse-bg{
+    0%,100%{ opacity:1; } 50%{ opacity:0.55; }
+  }
+  .privacy .wrap{ position:relative; z-index:1; }
+  .privacy h2{
+    font-family:var(--serif); font-weight:600;
+    font-size:clamp(32px, 5.5vw, 64px);
+    line-height:1.05; margin:20px auto 0; max-width:16ch;
+  }
+  .privacy p{color:var(--fg-dim); font-size:16px; max-width:52ch; margin:24px auto 0; line-height:1.65;}
+  .privacy .eyebrow{justify-content:center;}
+
+  /* ---------- pills row ---------- */
+  .pillrow{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:34px;}
+  .pill{
+    font-family:var(--mono); font-size:12px; color:var(--fg-dim);
+    border:1px solid var(--line-strong); border-radius:999px; padding:8px 16px;
+    transition:border-color 0.2s, color 0.2s;
+  }
+  .pill:hover{ border-color:var(--gold); color:var(--gold); }
+
+  /* ---------- FAQ ---------- */
+  .faq-list{ display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .faq-item{ background:var(--bg); }
+  .faq-item summary{
+    padding:24px 28px;
+    font-family:var(--serif); font-weight:600; font-size:17px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    list-style:none;
+  }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{
+    content:"+";
+    font-family:var(--mono); font-size:20px; color:var(--gold); flex-shrink:0;
+    transition:transform 0.25s ease;
+  }
+  .faq-item[open] summary::after{ transform:rotate(45deg); }
+  .faq-item summary:hover{ color:var(--gold); }
+  .faq-item .faq-body{ padding:0 28px 26px; color:var(--fg-dim); font-size:14.5px; line-height:1.7; max-width:64ch; }
+  .faq-item .faq-body a{ color:var(--gold); text-decoration:none; }
+  .faq-item .faq-body a:hover{ text-decoration:underline; }
+
+  /* ---------- final cta ---------- */
+  .final{
+    text-align:center;
+    padding:140px 0 160px;
+    position:relative;
+  }
+  .final h2{
+    font-family:var(--serif); font-weight:600;
+    font-size:clamp(34px, 6vw, 68px); line-height:1.03; margin:20px auto 0; max-width:18ch;
+  }
+  .final .hero-ctas{justify-content:center; margin-top:38px;}
+  .final .hero-note{text-align:center;}
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:40px 0;
+  }
+  .foot-row{
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
+    font-family:var(--mono); font-size:12px; color:var(--fg-faint);
+  }
+  .foot-row a{color:var(--fg-dim); text-decoration:none;}
+  .foot-row a:hover{color:var(--gold);}
+
+  ::selection{background:var(--gold); color:#171400;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="12" stroke="#f5c518" stroke-width="1.6"/>
+        <path d="M8 13a5 5 0 0 1 5-5" stroke="#f5c518" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="17.5" cy="8.5" r="2.2" fill="#f5c518"/>
+      </svg>
+      Real View
+    </div>
+    <nav class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#uses">Uses</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-gold btn-sm" href="#get">Get Real View</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">CHROME EXTENSION · INDEPENDENT PROJECT</span>
+      <h1 class="headline">Flip one switch.<br>See what's <em>actually real</em>.</h1>
+      <p class="lede">Real View hides AI-generated images across your browsing with a single toggle — so when you're hunting for real reference photos, you're not wading through a feed of synthetic ones.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" href="#get">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z" stroke="#171400" stroke-width="1.6"/><circle cx="12" cy="12" r="3.4" fill="#171400"/></svg>
+          Add to Chrome
+        </a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <div class="hero-note">No account · 10-second install · built solo — <a href="#" id="coffeeLinkHero" target="_blank" rel="noopener">buy me a coffee ☕</a> if it's useful</div>
+    </div>
+
+    <div class="demo-stage">
+      <div class="switch-console" id="console">
+        <span class="switch-console-label">AI IMAGES</span>
+        <div class="toggle-lg" id="toggle" role="switch" aria-checked="false" aria-label="AI images" tabindex="0"></div>
+        <span class="switch-console-state" id="switchState">OFF</span>
+      </div>
+      <div class="demo" id="demo">
+        <div class="demo-chrome">
+          <span class="demo-dot"></span><span class="demo-dot"></span><span class="demo-dot"></span>
+          <span class="demo-url">pinterest.com/search?q=cats</span>
+        </div>
+        <div class="demo-body">
+          <div class="tile-grid">
+            <div class="tile" data-kind="real"><img class="art" src="images/cat-real-1.jpg" alt="Real photo of a cat"><span class="badge">REAL</span></div>
+            <div class="tile" data-kind="ai"><img class="art" src="images/cat-ai-1.jpg" alt="AI-generated image of a cat"><span class="badge">AI</span></div>
+            <div class="tile" data-kind="real"><img class="art" src="images/cat-real-3.jpg" alt="Real photo of a cat"><span class="badge">REAL</span></div>
+            <div class="tile" data-kind="real"><img class="art" src="images/cat-real-2.jpg" alt="Real photo of a cat"><span class="badge">REAL</span></div>
+            <div class="tile" data-kind="ai"><img class="art" src="images/cat-ai-2.jpg" alt="AI-generated image of a cat"><span class="badge">AI</span></div>
+            <div class="tile" data-kind="ai"><img class="art" src="images/cat-ai-3.jpg" alt="AI-generated image of a cat"><span class="badge">AI</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="statement">
+  <div class="wrap reveal">
+    <blockquote>"I love generating with AI — I've got nothing against it. But when I'm hunting for real references, real recipes, real anything, I'm constantly bombarded with AI images. I just need a way to switch to a real view of things."</blockquote>
+    <div class="attribution">— <a href="https://www.linkedin.com/in/jamesscdow/" target="_blank" rel="noopener">James Dow</a>, creator of Real View</div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">HOW IT WORKS</span>
+      <h2>Three layers of signal, side by side.</h2>
+      <p>No single trick catches everything — so Real View runs a stack of checks, lightest first, and only reaches for the heavier one when it has to.</p>
+    </div>
+
+    <div class="hud-demo reveal">
+      <span class="hud-chip"><span class="hud-dot"></span>Real View: checking 24 images…</span>
+      <p class="hud-caption">You'll see this in the corner of the page while it works. Most pages resolve in a second or two — a big, image-heavy page just takes a beat longer. Nothing's frozen, it's working through what's actually on screen.</p>
+    </div>
+
+    <div class="stack" id="stackGroup">
+      <div class="stack-item reveal">
+        <div class="stack-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 11.5L11.5 3H18a3 3 0 013 3v6.5L12.5 21 3 11.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/></svg>
+          <span class="stack-check">✓</span>
+        </div>
+        <div class="stack-num">01 / METADATA &amp; SOURCE</div>
+        <h3>Metadata &amp; source signals</h3>
+        <p>Reads embedded generator tags left in the file itself, and cross-references the image's source domain against a huge, refreshable list of known AI platforms. Near-instant, and costs nothing.</p>
+        <span class="stack-tag">no setup · always on</span>
+      </div>
+      <div class="stack-item reveal">
+        <div class="stack-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span class="stack-check">✓</span>
+        </div>
+        <div class="stack-num">02 / VISUAL MODEL</div>
+        <h3>On-device visual model</h3>
+        <p>When metadata and domain give no answer, an ML model examines the actual pixels — right there in your browser. Nothing is ever uploaded or sent anywhere. In our own testing it calls roughly <strong>84%</strong> of images correctly — not perfect, and it stays quiet rather than guess when unsure.</p>
+        <span class="stack-tag">opt-in · private</span>
+      </div>
+      <div class="stack-item reveal">
+        <div class="stack-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 3v18M5 4.5h12.5l-3 3.5 3 3.5H5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <span class="stack-check">✓</span>
+        </div>
+        <div class="stack-num">03 / YOUR CORRECTIONS</div>
+        <h3>Your own corrections</h3>
+        <p>Right-click any image to flag a miss or fix a false positive. Your corrections are remembered instantly, for you — no waiting on anyone else.</p>
+        <span class="stack-tag">personal · instant</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="works-on">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">WORKS EVERYWHERE YOU SEARCH</span>
+      <h2>The sites people actually hunt references on.</h2>
+      <p>Google Images, Bing and DuckDuckGo hide an image's true source behind their own proxies — Real View resolves it anyway. Pinterest gets its own dedicated hook.</p>
+    </div>
+  </div>
+  <div class="marquee">
+    <div class="marquee-track">
+      <span class="logo-chip">Google Images<span class="dot"></span></span>
+      <span class="logo-chip">Pinterest<span class="dot"></span></span>
+      <span class="logo-chip">Bing Images<span class="dot"></span></span>
+      <span class="logo-chip">DuckDuckGo<span class="dot"></span></span>
+      <span class="logo-chip">Google Images<span class="dot"></span></span>
+      <span class="logo-chip">Pinterest<span class="dot"></span></span>
+      <span class="logo-chip">Bing Images<span class="dot"></span></span>
+      <span class="logo-chip">DuckDuckGo<span class="dot"></span></span>
+    </div>
+  </div>
+</section>
+
+<section id="uses">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">WHO IT'S FOR</span>
+      <h2>Three ways people actually use it.</h2>
+    </div>
+
+    <div class="usecase-grid" id="usecaseGroup">
+      <div class="usecase reveal">
+        <span class="usecase-num">01</span>
+        <h3>Reference &amp; mood-boarding</h3>
+        <p>Hunting for real photographic reference — lighting, texture, an actual pose — for illustration, concept art or photography, without forty AI renders in the way.</p>
+      </div>
+      <div class="usecase reveal">
+        <span class="usecase-num">02</span>
+        <h3>Sourcing &amp; fact-checking</h3>
+        <p>Checking whether a product shot, recipe photo, listing image or news photo is an actual photograph before you trust it, cook it, or buy it.</p>
+      </div>
+      <div class="usecase reveal">
+        <span class="usecase-num">03</span>
+        <h3>Browsing without the slop</h3>
+        <p>Cleaning up Pinterest boards and Google Image feeds that have quietly filled up with synthetic content over the last couple of years.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">FEATURES</span>
+      <h2>Built for actually finding things.</h2>
+    </div>
+
+    <div class="feature-grid" id="featureGroup">
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/></svg>
+        <h4>Blur, or hide entirely</h4>
+        <p>Choose whether AI images get softly blurred (click to reveal) or disappear from the page completely.</p>
+      </div>
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17" stroke="currentColor" stroke-width="1.6"/></svg>
+        <h4>Works where you search</h4>
+        <p>Google Images, Bing, DuckDuckGo and Pinterest are all specifically supported, resolving true source links these sites hide by default.</p>
+      </div>
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 4v6c0 4.2-3 7.2-7.5 8-4.5-.8-7.5-3.8-7.5-8V7l7.5-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <h4>Private by architecture</h4>
+        <p>The visual model runs entirely on-device via WebAssembly. Your images never leave your machine — there is no server to send them to.</p>
+      </div>
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h4>Outlines real sources too</h4>
+        <p>Photos from known real-photo sources — Unsplash, Getty, press wires — get a quiet confirmation outline, not just AI images a warning.</p>
+      </div>
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.5-7-10a4.5 4.5 0 018-2.8A4.5 4.5 0 0121 10c0 5.5-7 10-7 10z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <h4>Live progress, always visible</h4>
+        <p>A quiet on-page indicator shows exactly what's being checked right now — never a silent black box.</p>
+      </div>
+      <div class="feature reveal">
+        <svg class="ficon" viewBox="0 0 24 24" fill="none"><path d="M4 8h13v6a5 5 0 01-5 5H9a5 5 0 01-5-5V8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M17 9h1.5a2.5 2.5 0 010 5H17" stroke="currentColor" stroke-width="1.6"/><path d="M8 3.5c0 1-1 1-1 2M12 3.5c0 1-1 1-1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <h4>One person, no upsells</h4>
+        <p>Built and maintained solo — no company, no premium upsell waiting behind a paywall. If it saves you the scroll, <a href="#" id="coffeeLinkFeature" target="_blank" rel="noopener">a coffee</a> or a <a href="#" id="sponsorLinkFeature" target="_blank" rel="noopener">GitHub Sponsors</a> pledge goes a long way.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="privacy" id="privacy">
+  <div class="wrap reveal">
+    <span class="eyebrow">ON-DEVICE, END TO END</span>
+    <h2>Nothing you see is ever uploaded.</h2>
+    <p>The visual classifier runs as WebAssembly inside your browser, in a document Chrome keeps alive just for this. No image, no URL, no browsing history — none of it touches a server. Not ours; there isn't one.</p>
+    <div class="pillrow">
+      <span class="pill">Runs in-browser (WASM)</span>
+      <span class="pill">Zero image uploads</span>
+      <span class="pill">No account required</span>
+      <span class="pill">Open detection logic</span>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">QUESTIONS</span>
+      <h2>Before you install.</h2>
+    </div>
+    <div class="faq-list" id="faqGroup">
+      <details class="faq-item reveal">
+        <summary>Will this slow down my browsing?</summary>
+        <div class="faq-body">No. Metadata and domain checks are near-instant. The optional visual model only ever runs on images actually visible on your screen, a couple at a time — never a whole page's backlog at once.</div>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Does it work on sites other than Google, Bing, DuckDuckGo and Pinterest?</summary>
+        <div class="faq-body">Yes — those four get dedicated source-resolution because they hide an image's real origin behind a proxy. Every other site still gets metadata and domain-list detection out of the box.</div>
+      </details>
+      <details class="faq-item reveal">
+        <summary>What happens to images it's not sure about?</summary>
+        <div class="faq-body">It leaves them alone. An inconclusive image is shown exactly as normal — Real View never guesses.</div>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Is my data ever sent anywhere?</summary>
+        <div class="faq-body">No. The visual model runs entirely on-device via WebAssembly. There's no server component to send anything to, even if we wanted to.</div>
+      </details>
+      <details class="faq-item reveal">
+        <summary>How do you make money from this?</summary>
+        <div class="faq-body">I don't, really — Real View is an independent, one-person project, not a business. If it saves you the scroll, you're welcome to <a href="#" id="coffeeLinkFaq" target="_blank" rel="noopener">buy me a coffee</a> or back it on <a href="#" id="sponsorLinkFaq" target="_blank" rel="noopener">GitHub Sponsors</a>. No account, no catch, no upsell hiding behind it.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final" id="get">
+  <div class="wrap reveal">
+    <span class="eyebrow">GET STARTED</span>
+    <h2>Stop scrolling past fakes.</h2>
+    <div class="hero-ctas">
+      <a class="btn btn-gold" href="#">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z" stroke="#171400" stroke-width="1.6"/><circle cx="12" cy="12" r="3.4" fill="#171400"/></svg>
+        Add to Chrome
+      </a>
+      <a class="btn btn-ghost" href="#">View source</a>
+    </div>
+    <div class="hero-note">No account · works out of the box · one toggle, and you're done.</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <span>Real View — one switch for reference hunting · made by <a href="https://www.linkedin.com/in/jamesscdow/" target="_blank" rel="noopener">James Dow</a></span>
+    <span class="foot-links">
+      <a href="#" id="coffeeLink" target="_blank" rel="noopener">Buy me a coffee ☕</a>
+      <span aria-hidden="true"> · </span>
+      <a href="#" id="sponsorLink" target="_blank" rel="noopener">GitHub Sponsors</a>
+      <span aria-hidden="true"> · </span>
+      <a href="https://huggingface.co/haywoodsloan/ai-image-detector-deploy" target="_blank" rel="noopener">Visual model credit</a>
+      <span aria-hidden="true"> · </span>
+      <a href="privacy.html">Privacy</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // interactive hero demo
+  const demo = document.getElementById('demo');
+  const consoleEl = document.getElementById('console');
+  const toggle = document.getElementById('toggle');
+  const stateLabel = document.getElementById('switchState');
+  let on = false;
+  function setState(v){
+    on = v;
+    demo.classList.toggle('hide-on', on);
+    toggle.classList.toggle('on', on);
+    consoleEl.classList.toggle('on', on);
+    toggle.setAttribute('aria-checked', String(on));
+    stateLabel.textContent = on ? 'ON' : 'OFF';
+  }
+  toggle.addEventListener('click', () => setState(!on));
+  toggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setState(!on); }
+  });
+  // auto-demo once on load so first-time visitors see the effect without hunting for it
+  window.addEventListener('load', () => {
+    setTimeout(() => setState(true), 900);
+  });
+
+  // stagger delays for grouped reveal children
+  document.querySelectorAll('.stack, .usecase-grid, .feature-grid, .faq-list').forEach(group => {
+    Array.from(group.children).forEach((child, i) => child.style.setProperty('--d', i));
+  });
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

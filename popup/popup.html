@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <span class="dot"></span>
+      <span class="title">Real View</span>
+    </div>
+
+    <div class="row switch-row">
+      <div>
+        <div class="label" id="siteLabel">This site</div>
+        <div class="sub" id="siteSub">Scanning active</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="siteToggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row switch-row" id="aiRow">
+      <div>
+        <div class="label">AI Images</div>
+        <div class="sub" id="countLabel">Scanning page…</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="aiToggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row segmented" id="actionSegmented">
+      <button data-value="blur" class="seg-btn">Blur</button>
+      <button data-value="hide" class="seg-btn">Hide</button>
+    </div>
+
+    <div class="nudge" id="visualNudge" style="display:none;">
+      <p><strong id="nudgeCount">0</strong> images here couldn't be checked by the free signals alone.</p>
+      <button id="nudgeEnableBtn" class="nudge-btn">Turn on visual detection</button>
+    </div>
+
+    <button class="options-link" id="optionsBtn">Settings</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

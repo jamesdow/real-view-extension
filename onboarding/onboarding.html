@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Welcome to Real View</title>
+  <link rel="stylesheet" href="onboarding.css" />
+</head>
+<body>
+  <section class="hero">
+    <div class="wrap">
+      <div class="mark">
+        <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
+          <circle cx="13" cy="13" r="12" stroke="#f5c518" stroke-width="1.6"/>
+          <path d="M8 13a5 5 0 0 1 5-5" stroke="#f5c518" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="17.5" cy="8.5" r="2.2" fill="#f5c518"/>
+        </svg>
+      </div>
+
+      <h1>Thanks for installing Real View.</h1>
+      <h2>One more step — this is the one that actually matters.</h2>
+
+      <p class="lede">
+        Turn on the on-device visual model so Real View can actually look at images
+        and tell if they're AI-generated — not just guess from the web address.
+        Without it, Real View misses most AI art on sites like Pinterest.
+      </p>
+
+      <button id="enableBtn" class="btn-gold">Yes, turn it on</button>
+      <p class="trust">
+        Made by <a href="https://huggingface.co/haywoodsloan/ai-image-detector-deploy" target="_blank" rel="noopener">haywoodsloan</a>
+        · runs on your device · nothing is ever uploaded
+      </p>
+      <p class="status" id="status"></p>
+      <a href="#" id="laterLink" class="later-link">Not now</a>
+    </div>
+  </section>
+
+  <section class="more">
+    <div class="wrap">
+      <h3>More detail, if you want it</h3>
+
+      <div class="stats-row">
+        <div class="stat"><span class="num">84%</span><span class="label">correct in our own testing<br>(not a guarantee)</span></div>
+        <div class="stat"><span class="num">320MB</span><span class="label">one-time download,<br>then fully offline</span></div>
+        <div class="stat"><span class="num">0</span><span class="label">images ever sent<br>anywhere</span></div>
+      </div>
+
+      <p class="lede">
+        Real View already reads embedded metadata and checks image source domains
+        against a huge blocklist, on every page, for free. But a lot of AI art —
+        especially on Pinterest — is uploaded directly with no external source link at
+        all, and no metadata left in the file. There's nothing for those checks to
+        go on. The visual model looks at the actual pixels instead, so it doesn't need
+        either one.
+      </p>
+      <p class="lede">
+        It's opt-in specifically because it's a real ~320MB download the first time and
+        uses more CPU per image afterward. Once it's downloaded, it runs entirely in
+        your browser — nothing is ever uploaded, and it keeps working offline.
+      </p>
+
+      <p class="footnote">
+        Change this anytime from the extension's Options page. You can also turn Real
+        View off entirely for specific sites from the toolbar popup.
+      </p>
+    </div>
+  </section>
+
+  <script src="onboarding.js"></script>
+</body>
+</html>

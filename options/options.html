@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Real View Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Real View</h1>
+    <p class="tagline">One switch to filter AI-generated images out of your browsing so reference hunts stay real.</p>
+
+    <section>
+      <h2>Detection</h2>
+      <label class="check">
+        <input type="checkbox" id="deepScan" />
+        Deep-scan image metadata (reads embedded generator tags — free, no account needed)
+      </label>
+      <label class="check">
+        <input type="checkbox" id="tagReal" />
+        Outline images from known real-photo sources (Unsplash, Getty, press wires…)
+      </label>
+    </section>
+
+    <section>
+      <h2>Visual AI Detection <span class="badge">on-device, experimental</span></h2>
+      <p class="hint">
+        Runs a real machine-learning model against the actual pixels of images the free
+        signals above couldn't classify (domain lists and metadata don't help with, say, an
+        AI-generated illustration hosted on a legitimate news site). Everything runs on your
+        device — nothing is ever uploaded. Downloads a ~320MB model the <strong>first</strong>
+        time you turn this on (cached after), and uses noticeably more CPU per image. Only
+        classifies images actually visible on screen, never a whole page's backlog at once.
+      </p>
+      <p class="hint">
+        Model: <a href="https://huggingface.co/haywoodsloan/ai-image-detector-deploy" target="_blank" rel="noopener">haywoodsloan/ai-image-detector-deploy</a>
+        — community-sourced, no license listed. Treat this as experimental, not a guarantee.
+      </p>
+      <p class="hint">
+        <strong>Expect it to be wrong sometimes.</strong> In our own testing (a hand-built
+        25-image set, not an independent benchmark), this model correctly called roughly
+        <strong>84%</strong> of images. It's tuned to stay quiet rather than guess — an
+        image it isn't confident about is left alone, never falsely flagged as AI just to
+        make a call either way.
+      </p>
+      <label class="check">
+        <input type="checkbox" id="visualDetection" />
+        Enable on-device visual detection
+      </label>
+      <p class="hint" id="visualStatus"></p>
+
+      <p class="hint" id="modelUpdateBanner" style="display:none;">
+        A newer version of the visual model is available.
+        <button id="applyModelUpdateBtn" class="upgrade-btn" style="margin-left:6px; padding:4px 10px; font-size:11px;">Update now</button>
+      </p>
+
+      <div class="model-actions">
+        <button id="deleteModelBtn" class="upgrade-btn">Delete downloaded model</button>
+        <button id="checkModelUpdateBtn" class="options-link">Check for model update</button>
+      </div>
+      <p class="hint" id="modelManageStatus"></p>
+    </section>
+
+    <section>
+      <h2>AI Blocklist</h2>
+      <p class="hint" id="blocklistStatus">Loading status…</p>
+      <button id="refreshBlocklistBtn" class="upgrade-btn">Refresh AI blocklist now</button>
+    </section>
+
+    <section>
+      <h2>Your flagged images</h2>
+      <p class="hint">
+        Right-click any image on a page → "Real View: Flag this image as AI-generated" (or
+        "Mark this image as a real photo") to correct a miss or a false positive by exact
+        URL. This is a personal list for now — a shared version is a possible future step.
+      </p>
+      <p class="hint" id="flaggedStatus">Loading…</p>
+      <button id="clearFlagsBtn" class="upgrade-btn">Clear all flagged images</button>
+    </section>
+
+    <section>
+      <h2>Custom AI sources</h2>
+      <p class="hint">One hostname fragment per line. Merged with the built-in list.</p>
+      <textarea id="customAiDomains" rows="4" placeholder="example-ai-art-site.com"></textarea>
+    </section>
+
+    <div class="save-row">
+      <span id="savedNote"></span>
+      <button id="saveBtn" class="save-btn">Save</button>
+    </div>
+
+    <section class="made-by">
+      <p class="hint">
+        Made by <a href="https://www.linkedin.com/in/jamesscdow/" target="_blank" rel="noopener">James Dow</a>.
+        <a href="#" id="coffeeLink" target="_blank" rel="noopener">Buy me a coffee ☕</a>
+        ·
+        <a href="#" id="sponsorLink" target="_blank" rel="noopener">GitHub Sponsors</a>
+      </p>
+    </section>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
