@@ -272,7 +272,26 @@
     border-radius:6px;
     flex:1;
   }
-  .demo-body{padding:20px;}
+  .demo-body{padding:20px; position:relative; overflow:hidden;}
+  .scan-line{
+    position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--gold) 15%, var(--gold) 85%, transparent);
+    box-shadow:0 0 14px 2px rgba(143,227,192,0.65), 0 0 46px 10px rgba(143,227,192,0.25);
+    opacity:0; pointer-events:none; z-index:5;
+  }
+  .scan-line.sweep{ animation:scan-sweep 1s cubic-bezier(.45,0,.2,1); }
+  @keyframes scan-sweep{
+    0%{ opacity:0; top:0; }
+    6%{ opacity:1; }
+    94%{ opacity:1; }
+    100%{ opacity:0; top:100%; }
+  }
+  /* staggered per-row delay so tiles resolve as the scan line passes over them,
+     rather than every tile blurring/revealing in lockstep */
+  .tile:nth-child(-n+3) .art{ transition-delay:0.12s; }
+  .tile:nth-child(-n+3) .badge{ transition-delay:0.12s; }
+  .tile:nth-child(n+4) .art{ transition-delay:0.5s; }
+  .tile:nth-child(n+4) .badge{ transition-delay:0.5s; }
   .tile-grid{
     display:grid;
     grid-template-columns:repeat(3, 1fr);
@@ -621,6 +640,7 @@
           <span class="demo-url">pinterest.com/search?q=cats</span>
         </div>
         <div class="demo-body">
+          <div class="scan-line" id="scanLine"></div>
           <div class="tile-grid">
             <div class="tile" data-kind="real"><img class="art" src="images/cat-real-1.jpg" alt="Real photo of a cat"><span class="badge">REAL</span></div>
             <div class="tile" data-kind="ai"><img class="art" src="images/cat-ai-1.jpg" alt="AI-generated image of a cat"><span class="badge">AI</span></div>
@@ -862,6 +882,7 @@
   const consoleEl = document.getElementById('console');
   const toggle = document.getElementById('toggle');
   const stateLabel = document.getElementById('switchState');
+  const scanLine = document.getElementById('scanLine');
   let on = false;
   function setState(v){
     on = v;
@@ -870,6 +891,12 @@
     consoleEl.classList.toggle('on', on);
     toggle.setAttribute('aria-checked', String(on));
     stateLabel.textContent = on ? 'ON' : 'OFF';
+    // scan-line sweep: the visual "detection pass" moment, timed to land on each
+    // row just before that row's tiles resolve (see the nth-child transition-delay
+    // rules in CSS) — ties the interaction directly to what the product does.
+    scanLine.classList.remove('sweep');
+    void scanLine.offsetWidth; // restart the animation even if triggered mid-sweep
+    scanLine.classList.add('sweep');
   }
   toggle.addEventListener('click', () => setState(!on));
   toggle.addEventListener('keydown', (e) => {
