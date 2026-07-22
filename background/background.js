@@ -1,5 +1,5 @@
 const DEFAULT_SETTINGS = {
-  hideAiImages: false,
+  hideAiImages: true,
   action: "blur",
   deepScan: true,
   tagReal: true,
@@ -94,7 +94,12 @@ async function deleteVisualModel() {
   } catch {}
   resetOffscreenReady();
   const deleted = await caches.delete(MODEL_CACHE_NAME);
-  await chrome.storage.local.remove(["visualDetectionBreadcrumbs", "visualDetectionError", "visualDetectionErrorAt"]);
+  await chrome.storage.local.remove([
+    "visualDetectionBreadcrumbs",
+    "visualDetectionError",
+    "visualDetectionErrorAt",
+    "visualModelDownloadProgress",
+  ]);
   return deleted;
 }
 
@@ -162,10 +167,54 @@ async function ensureModelCached() {
   const cache = await caches.open(MODEL_CACHE_NAME);
   if (await cache.match(MODEL_URL)) return;
   if (!cachingModel) {
-    cachingModel = fetch(MODEL_URL).then((res) => cache.put(MODEL_URL, res));
+    cachingModel = fetchModelWithProgress(cache);
   }
   await cachingModel;
   cachingModel = null;
+}
+
+// Reading res.clone() independently alongside the response cache.put() consumes (an earlier
+// version of this function) turned out to be unsafe for a body this large: concurrently
+// reading two clones of the same ~320MB response in a service worker let the progress-tracking
+// side "win the race" while the side actually meant for Cache Storage silently ended up empty —
+// confirmed in testing (progress reported all 322MB read, yet offscreen.js's cache.match() came
+// back with nothing). So this is a single pass instead: one reader pulls bytes from the network
+// exactly once, tallies them for progress, and re-emits them unchanged through a pass-through
+// stream that's what actually gets cached. cache.put() never sees two competing consumers.
+async function fetchModelWithProgress(cache) {
+  await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: 0, total: 0, done: false } });
+  const res = await fetch(MODEL_URL);
+  const total = Number(res.headers.get("Content-Length")) || 0;
+
+  if (!res.body || !total) {
+    // No streamable body, or the CDN omitted Content-Length — cache it directly, just
+    // without a meaningful percentage to show.
+    await cache.put(MODEL_URL, res);
+    await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: total, total, done: true } });
+    return;
+  }
+
+  let loaded = 0;
+  let lastReported = 0;
+  const reader = res.body.getReader();
+  const passthrough = new ReadableStream({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      loaded += value.byteLength;
+      if (loaded - lastReported > total * 0.01) {
+        lastReported = loaded;
+        chrome.storage.local.set({ visualModelDownloadProgress: { loaded, total, done: false } });
+      }
+      controller.enqueue(value);
+    },
+  });
+
+  await cache.put(MODEL_URL, new Response(passthrough, { headers: res.headers }));
+  await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: total, total, done: true } });
 }
 
 async function ensureOffscreenDocument() {
@@ -186,7 +235,7 @@ async function ensureOffscreenDocument() {
   // Generous timeout — first run downloads a ~300MB model, which can take a while depending
   // on connection speed. Later calls resolve near-instantly since the model is cached and
   // the document/session already exist.
-  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("offscreen document did not signal ready in time")), 300000));
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("offscreen document did not signal ready in time")), 900000));
   await Promise.race([offscreenReadyPromise, timeout]);
   scheduleOffscreenIdleClose();
 }
@@ -199,7 +248,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-chrome.action.setBadgeBackgroundColor({ color: "#F5C518" });
+chrome.action.setBadgeBackgroundColor({ color: "#8FE3C0" });
 
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.status === "loading") chrome.action.setBadgeText({ text: "", tabId });
@@ -327,7 +376,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // ~300MB model download has a clear, deliberate trigger point rather than silently kicking
   // off on whatever tab happens to hit the fallback path first.
   if (msg.type === "realview-warm-visual-model") {
-    Promise.all([ensureModelCached(), ensureOffscreenDocument()])
+    // Clear any error/breadcrumbs left over from a previous failed attempt first — otherwise
+    // a stale visualDetectionError from last time would keep showing as broken in Options even
+    // after this retry succeeds, since nothing else clears it on a normal re-enable.
+    chrome.storage.local
+      .remove(["visualDetectionError", "visualDetectionErrorAt", "visualDetectionBreadcrumbs"])
+      .then(() => Promise.all([ensureModelCached(), ensureOffscreenDocument()]))
       .then(() => sendResponse({ ok: true }))
       .catch((err) => sendResponse({ ok: false, error: String(err) }));
     return true;

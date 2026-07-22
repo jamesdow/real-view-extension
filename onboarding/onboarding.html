@@ -30,8 +30,79 @@
         Made by <a href="https://huggingface.co/haywoodsloan/ai-image-detector-deploy" target="_blank" rel="noopener">haywoodsloan</a>
         · runs on your device · nothing is ever uploaded
       </p>
+      <div class="progress-wrap" id="modelProgressWrap" style="display:none;">
+        <div class="progress-track"><div class="progress-fill" id="modelProgressFill"></div></div>
+        <span class="progress-pct" id="modelProgressPct">0%</span>
+      </div>
       <p class="status" id="status"></p>
       <a href="#" id="laterLink" class="later-link">Not now</a>
+    </div>
+  </section>
+
+  <section class="steps">
+    <div class="wrap">
+      <h3>Get it set up</h3>
+      <div class="step-grid">
+
+        <div class="step-card">
+          <span class="step-num">1</span>
+          <svg class="step-diagram" viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="16" width="208" height="28" rx="7" fill="#131315" stroke="#2a2b2e"/>
+            <rect x="32" y="23" width="130" height="14" rx="7" fill="#0f0f10"/>
+            <g transform="translate(178,18)" stroke="#a3a39e" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <rect x="0" y="4" width="16" height="14" rx="2"/>
+              <path d="M5,4 A3,3 0 0,1 11,4"/>
+            </g>
+            <path d="M185 36 L178 64" stroke="#8FE3C0" stroke-width="1.6" stroke-dasharray="3 3" fill="none"/>
+            <rect x="124" y="66" width="108" height="42" rx="9" fill="#131315" stroke="#2a2b2e"/>
+            <circle cx="140" cy="87" r="7" fill="#8FE3C0"/>
+            <text x="152" y="90" font-size="9" fill="#d0cfc9" font-family="inherit">Real View</text>
+            <circle cx="216" cy="87" r="11" fill="#8FE3C0" opacity="0.16"/>
+            <path d="M216 82v6m-3-3h6" stroke="#8FE3C0" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <p class="step-text"><strong>Pin it.</strong> Click the puzzle-piece icon in Chrome's toolbar, then the pin next to Real View — otherwise it's buried in the menu every time.</p>
+        </div>
+
+        <div class="step-card">
+          <span class="step-num">2</span>
+          <svg class="step-diagram" viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="38" width="120" height="48" rx="24" fill="none" stroke="#8FE3C0" stroke-width="3"/>
+            <circle cx="150" cy="62" r="16" fill="#8FE3C0"/>
+            <text x="120" y="110" font-size="16" font-weight="700" letter-spacing="0.06em" fill="#8FE3C0" text-anchor="middle" font-family="inherit">ON</text>
+            <text x="120" y="128" font-size="10" fill="#726e64" text-anchor="middle" font-family="inherit">by default</text>
+          </svg>
+          <p class="step-text"><strong>It's already switched on.</strong> AI images get blurred as you browse, starting now — no setup needed.</p>
+        </div>
+
+        <div class="step-card">
+          <span class="step-num">3</span>
+          <svg class="step-diagram" viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg">
+            <rect x="70" y="10" width="100" height="20" rx="10" fill="#0f0f10" stroke="#2a2b2e"/>
+            <rect x="71" y="11" width="49" height="18" rx="9" fill="#8FE3C0"/>
+            <text x="95" y="24" font-size="9" font-weight="600" fill="#0f0f10" text-anchor="middle" font-family="inherit">BLUR</text>
+            <text x="145" y="24" font-size="9" font-weight="600" fill="#a3a39e" text-anchor="middle" font-family="inherit">HIDE</text>
+
+            <defs>
+              <filter id="blurTile"><feGaussianBlur stdDeviation="3.2"/></filter>
+              <radialGradient id="photoTone" cx="35%" cy="35%" r="75%">
+                <stop offset="0%" stop-color="#5a6b63"/>
+                <stop offset="100%" stop-color="#2a3330"/>
+              </radialGradient>
+            </defs>
+            <rect x="24" y="46" width="80" height="70" rx="8" fill="url(#photoTone)" filter="url(#blurTile)"/>
+            <rect x="24" y="46" width="80" height="70" rx="8" fill="none" stroke="#2a2b2e"/>
+
+            <rect x="136" y="46" width="80" height="70" rx="8" fill="#131315" stroke="#2a2b2e"/>
+            <g stroke="#726e64" stroke-width="1.8" stroke-linecap="round" fill="none">
+              <path d="M155 82 Q182 68 209 82 Q182 96 155 82 Z"/>
+              <circle cx="182" cy="82" r="6"/>
+              <line x1="150" y1="66" x2="214" y2="98"/>
+            </g>
+          </svg>
+          <p class="step-text"><strong>Click the icon anytime.</strong> Switch between blur and fully hidden, or pause it for the site you're on, from the popup.</p>
+        </div>
+
+      </div>
     </div>
   </section>
 

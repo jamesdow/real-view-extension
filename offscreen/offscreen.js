@@ -47,14 +47,24 @@ function base64ToBytes(b64) {
 }
 
 // Cache Storage, not transformers.js's built-in caching (which we no longer use). Read-only
-// here — background.js's ensureModelCached() is what actually populates this entry, and it
-// always runs (in parallel with this document's own startup) before any classify request
-// reaches this document, so the cache miss path below is a genuine error, not a fallback.
+// here — background.js's ensureModelCached() is what actually populates this entry, running
+// concurrently with this document's own startup (WASM import + env config). On a first-ever
+// install those two are NOT the same order of magnitude — WASM import takes ~seconds, a
+// ~320MB download takes minutes — so this polls rather than checking once, giving the
+// download real time to land instead of failing the instant this document happens to be first.
 async function fetchModelBytes() {
   const cache = await caches.open(MODEL_CACHE_NAME);
-  const cached = await cache.match(MODEL_URL);
-  if (!cached) throw new Error("model not found in Cache Storage — background.js should have cached it first");
-  return cached.arrayBuffer();
+  // Kept under background.js's own 15-minute "offscreen document did not signal ready in time"
+  // timeout (ensureOffscreenDocument()) — this needs to give up and report its own specific
+  // error first, rather than getting cut off by that generic one.
+  const maxAttempts = 168; // ~14 minutes at 5s apart — real headroom for a slow connection
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const cached = await cache.match(MODEL_URL);
+    if (cached) return cached.arrayBuffer();
+    breadcrumb(`waiting for model download (attempt ${attempt + 1})`);
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+  throw new Error("model still not in Cache Storage after waiting — background.js's download may have failed or stalled");
 }
 
 async function preprocessImage(imageBase64, Tensor) {

@@ -1,5 +1,5 @@
 const DEFAULT_SETTINGS = {
-  hideAiImages: false,
+  hideAiImages: true,
   action: "blur",
   deepScan: true,
   tagReal: true,
@@ -117,6 +117,29 @@ function describeVisualStatus() {
 describeVisualStatus();
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && (changes.visualDetectionBreadcrumbs || changes.visualDetectionError)) describeVisualStatus();
+});
+
+const modelProgressWrap = document.getElementById("modelProgressWrap");
+const modelProgressFill = document.getElementById("modelProgressFill");
+const modelProgressPct = document.getElementById("modelProgressPct");
+
+function describeModelDownloadProgress() {
+  chrome.storage.local.get({ visualModelDownloadProgress: null }, (local) => {
+    const p = local.visualModelDownloadProgress;
+    if (!els.visualDetection.checked || !p || p.done || !p.total) {
+      modelProgressWrap.style.display = "none";
+      return;
+    }
+    const pct = Math.min(100, Math.round((p.loaded / p.total) * 100));
+    modelProgressWrap.style.display = "";
+    modelProgressFill.style.width = pct + "%";
+    modelProgressPct.textContent = pct + "%";
+  });
+}
+
+describeModelDownloadProgress();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.visualModelDownloadProgress) describeModelDownloadProgress();
 });
 
 els.visualDetection.addEventListener("change", () => {

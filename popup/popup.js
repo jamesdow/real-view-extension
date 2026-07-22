@@ -1,5 +1,5 @@
 const DEFAULT_SETTINGS = {
-  hideAiImages: false,
+  hideAiImages: true,
   action: "blur",
   deepScan: true,
   tagReal: true,

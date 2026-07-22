@@ -11,10 +11,10 @@ body {
 
 /* ---------- above the fold ---------- */
 .hero {
-  min-height: 86vh;
+  min-height: 54vh;
   display: flex;
   align-items: center;
-  padding: 40px 0;
+  padding: 48px 0 32px;
 }
 .hero .wrap { text-align: center; }
 
@@ -48,6 +48,11 @@ h2 { font-size: 17px; font-weight: 500; color: #8FE3C0; margin: 0 0 20px; }
 
 .status { font-size: 12px; color: #6fbf73; margin: 10px 0 0; min-height: 16px; }
 
+.progress-wrap { display: flex; align-items: center; gap: 10px; margin: 14px auto 0; max-width: 320px; }
+.progress-track { flex: 1; height: 6px; border-radius: 999px; background: #1b1c1e; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: linear-gradient(135deg, #8FE3C0, #5FBE99); border-radius: 999px; transition: width 0.25s ease; }
+.progress-pct { font-size: 11px; color: #a3a39e; min-width: 32px; text-align: right; }
+
 .later-link {
   display: inline-block;
   margin-top: 18px;
@@ -56,6 +61,35 @@ h2 { font-size: 17px; font-weight: 500; color: #8FE3C0; margin: 0 0 20px; }
   text-decoration: none;
 }
 .later-link:hover { color: #a3a39e; }
+
+/* ---------- get-set-up steps ---------- */
+.steps {
+  border-top: 1px solid #2a2b2e;
+  padding: 28px 0 36px;
+  background: #131315;
+}
+.steps .wrap { max-width: 760px; }
+.steps h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #726e64;
+  margin: 0 0 16px;
+}
+.step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 480px) { .step-grid { grid-template-columns: 1fr; } }
+
+.step-card { position: relative; background: #1b1c1e; border: 1px solid #2a2b2e; border-radius: 10px; padding: 22px 10px 18px; text-align: center; }
+.step-num {
+  position: absolute; top: -9px; left: -9px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #8FE3C0; color: #0f0f10;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-diagram { width: 100%; height: auto; margin-bottom: 14px; }
+.step-text { font-size: 12.5px; line-height: 1.55; color: #d0cfc9; margin: 0; }
+.step-text strong { display: block; color: #f2f2f0; margin-bottom: 4px; }
 
 /* ---------- below the fold ---------- */
 .more {

@@ -1,6 +1,6 @@
 (function () {
   const DEFAULTS = {
-    hideAiImages: false, // false = show everything normally; true = filter AI images (switch ON)
+    hideAiImages: true, // false = show everything normally; true = filter AI images (switch ON)
     action: "blur",      // "blur" | "hide"
     deepScan: true,      // fetch image bytes and read embedded metadata
     tagReal: true,       // outline images from known-real sources
@@ -15,7 +15,7 @@
   // dataset.realview and isn't in `processed`, so without a src-based check the same
   // image gets reclassified and recounted every time it's remounted.
   const countedAiSrcs = new Set();
-  const processed = new WeakSet();
+  let processed = new WeakSet();
   const queue = [];
   let inFlight = 0;
   const MAX_IN_FLIGHT = 4;
@@ -96,6 +96,31 @@
     return hudEl;
   }
 
+  // While the visual model is still downloading/initializing, a queued image can sit "in
+  // flight" for minutes — without this, the HUD would just say "checking 1 image…" that whole
+  // time with no explanation, which reads exactly like the extension has hung (it hasn't).
+  let modelStatus = { ready: false, pct: null };
+  function refreshModelStatus() {
+    chrome.storage.local.get(
+      { visualDetectionBreadcrumbs: [], visualModelDownloadProgress: null },
+      (local) => {
+        const last = local.visualDetectionBreadcrumbs[local.visualDetectionBreadcrumbs.length - 1] || "";
+        const p = local.visualModelDownloadProgress;
+        modelStatus = {
+          ready: last.includes("ready sent"),
+          pct: p && p.total && !p.done ? Math.round((p.loaded / p.total) * 100) : null,
+        };
+        updateHud();
+      }
+    );
+  }
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && (changes.visualModelDownloadProgress || changes.visualDetectionBreadcrumbs)) {
+      refreshModelStatus();
+    }
+  });
+  refreshModelStatus();
+
   function updateHud() {
     const pending = queue.length + inFlight + visualQueue.length + visualInFlight;
     if (pending <= 0) {
@@ -103,8 +128,12 @@
       return;
     }
     const hud = ensureHud();
-    hud.querySelector(".realview-hud-text").textContent =
-      `Real View: checking ${pending} image${pending === 1 ? "" : "s"}…`;
+    const waitingOnModel = (visualQueue.length || visualInFlight) && !modelStatus.ready;
+    hud.querySelector(".realview-hud-text").textContent = waitingOnModel
+      ? modelStatus.pct != null
+        ? `Real View: downloading AI model (${modelStatus.pct}%, first time only)…`
+        : `Real View: preparing AI model (first time only)…`
+      : `Real View: checking ${pending} image${pending === 1 ? "" : "s"}…`;
     hud.classList.add("show");
   }
 
@@ -453,8 +482,13 @@
     loadSettings(() => {
       refreshAll();
       applyUserFlags();
-      // Re-scan: a site just flipped from paused to active never had its images added to
-      // `processed`, since scanImage() no-ops before that point while isActive() is false.
+      // Reset dedup tracking before re-scanning — every image already on the page is in
+      // `processed` from whatever pass ran under the OLD settings, so without this, scanImage()
+      // would just no-op on all of them (line ~385) and a setting like turning on visual
+      // detection would never actually apply to anything already loaded, only images added
+      // afterward. A full page reload was the only thing that used to fix this, since that
+      // starts with a genuinely fresh, empty `processed` set.
+      processed = new WeakSet();
       scanAll(document);
     });
   });
