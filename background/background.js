@@ -184,38 +184,49 @@ async function ensureModelCached() {
 // stream that's what actually gets cached. cache.put() never sees two competing consumers.
 async function fetchModelWithProgress(cache) {
   await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: 0, total: 0, done: false } });
-  const res = await fetch(MODEL_URL);
-  const total = Number(res.headers.get("Content-Length")) || 0;
 
-  if (!res.body || !total) {
-    // No streamable body, or the CDN omitted Content-Length — cache it directly, just
-    // without a meaningful percentage to show.
-    await cache.put(MODEL_URL, res);
+  // Genuinely aborts on timeout (not just a Promise.race that lets the fetch keep running
+  // unseen in the background) — 15 minutes, matching ensureOffscreenDocument()'s own ceiling
+  // for the same reason: this download can legitimately take minutes, but must still end
+  // somewhere rather than hang forever if the connection stalls.
+  const abortController = new AbortController();
+  const overallTimeout = setTimeout(() => abortController.abort(), 900000);
+  try {
+    const res = await fetch(MODEL_URL, { signal: abortController.signal });
+    const total = Number(res.headers.get("Content-Length")) || 0;
+
+    if (!res.body || !total) {
+      // No streamable body, or the CDN omitted Content-Length — cache it directly, just
+      // without a meaningful percentage to show.
+      await cache.put(MODEL_URL, res);
+      await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: total, total, done: true } });
+      return;
+    }
+
+    let loaded = 0;
+    let lastReported = 0;
+    const reader = res.body.getReader();
+    const passthrough = new ReadableStream({
+      async pull(streamController) {
+        const { done, value } = await reader.read();
+        if (done) {
+          streamController.close();
+          return;
+        }
+        loaded += value.byteLength;
+        if (loaded - lastReported > total * 0.01) {
+          lastReported = loaded;
+          chrome.storage.local.set({ visualModelDownloadProgress: { loaded, total, done: false } });
+        }
+        streamController.enqueue(value);
+      },
+    });
+
+    await cache.put(MODEL_URL, new Response(passthrough, { headers: res.headers }));
     await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: total, total, done: true } });
-    return;
+  } finally {
+    clearTimeout(overallTimeout);
   }
-
-  let loaded = 0;
-  let lastReported = 0;
-  const reader = res.body.getReader();
-  const passthrough = new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-      loaded += value.byteLength;
-      if (loaded - lastReported > total * 0.01) {
-        lastReported = loaded;
-        chrome.storage.local.set({ visualModelDownloadProgress: { loaded, total, done: false } });
-      }
-      controller.enqueue(value);
-    },
-  });
-
-  await cache.put(MODEL_URL, new Response(passthrough, { headers: res.headers }));
-  await chrome.storage.local.set({ visualModelDownloadProgress: { loaded: total, total, done: true } });
 }
 
 async function ensureOffscreenDocument() {

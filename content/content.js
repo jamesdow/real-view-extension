@@ -307,10 +307,27 @@
     }
   }
 
+  // The full round trip here (background.js relays to offscreen.js, which runs the actual WASM
+  // inference) has no timeout anywhere in that chain — a pathological image that hangs
+  // preprocessImage() or session.run() in offscreen.js would otherwise never resolve at all.
+  // With MAX_VISUAL_IN_FLIGHT capped at 2, just two such hangs permanently stalls the whole
+  // visual queue. This bounds the wait client-side regardless of where in the chain it hangs.
+  // A timeout deliberately isn't cached in visualResultCache — it may well have been transient,
+  // and giving up on that one image forever would be worse than just retrying it next time.
+  const VISUAL_CLASSIFY_TIMEOUT_MS = 20000;
   function classifyVisual(src) {
     if (visualResultCache.has(src)) return Promise.resolve(visualResultCache.get(src));
     return new Promise((resolve) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(null);
+      }, VISUAL_CLASSIFY_TIMEOUT_MS);
       safeSendMessage({ type: "realview-classify-visual", src }, (res) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         const verdict = res && res.verdict ? { verdict: res.verdict, reason: res.reason, layer: "visual" } : null;
         visualResultCache.set(src, verdict);
         resolve(verdict);
