@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Real View — AI Image Toggle",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Flip AI-generated images off across any page so you only see real photos when hunting for references.",
   "permissions": ["storage", "contextMenus", "offscreen", "alarms"],
   "host_permissions": ["<all_urls>"],

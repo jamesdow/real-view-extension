@@ -129,3 +129,15 @@ segButtons.forEach((btn) => {
 });
 
 document.getElementById("optionsBtn").addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+// Only worth surfacing once there's actually something to show — an empty "0 AI images caught"
+// teaser for a brand-new install just points at a page with nothing on it yet.
+const statsTeaser = document.getElementById("statsTeaser");
+chrome.storage.local.get({ statsTotalScanned: 0, statsAiCount: 0 }, (s) => {
+  if (s.statsTotalScanned <= 0) return;
+  document.getElementById("statsTeaserCount").textContent = s.statsAiCount.toLocaleString();
+  statsTeaser.style.display = "";
+});
+statsTeaser.addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("stats/stats.html") });
+});

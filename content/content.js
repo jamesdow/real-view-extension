@@ -15,6 +15,7 @@
   // dataset.realview and isn't in `processed`, so without a src-based check the same
   // image gets reclassified and recounted every time it's remounted.
   const countedAiSrcs = new Set();
+  const countedRealSrcs = new Set(); // same src-based dedup as countedAiSrcs, for the lifetime stats page
   let processed = new WeakSet();
   const queue = [];
   let inFlight = 0;
@@ -153,6 +154,44 @@
     }
   }
 
+  // Lifetime stats for the stats page — keyed by which layer actually resolved the verdict
+  // (set by the caller, not detector.js itself: "domainList" | "metadata" | "visual"). User
+  // flag corrections carry no layer and are deliberately excluded — they're not something the
+  // detection pipeline "caught", and are already tracked separately via userFlaggedAi/Real.
+  function recordStat(kind, layer) {
+    const domain = location.hostname;
+    chrome.storage.local.get(
+      {
+        statsTotalScanned: 0,
+        statsRealCount: 0,
+        statsAiCount: 0,
+        statsByDomain: {},
+        statsByLayer: { metadata: 0, domainList: 0, visual: 0 },
+        statsCurrentRealStreak: 0,
+        statsLongestRealStreak: 0,
+      },
+      (s) => {
+        s.statsTotalScanned++;
+        const d = s.statsByDomain[domain] || { total: 0, ai: 0 };
+        d.total++;
+        if (kind === "ai") d.ai++;
+        s.statsByDomain[domain] = d;
+
+        if (kind === "real") {
+          s.statsRealCount++;
+          s.statsCurrentRealStreak++;
+          if (s.statsCurrentRealStreak > s.statsLongestRealStreak) s.statsLongestRealStreak = s.statsCurrentRealStreak;
+        } else {
+          s.statsAiCount++;
+          s.statsCurrentRealStreak = 0;
+        }
+
+        if (s.statsByLayer[layer] !== undefined) s.statsByLayer[layer]++;
+        chrome.storage.local.set(s);
+      }
+    );
+  }
+
   function applyVerdict(img, verdict) {
     if (img.dataset.realview) return; // already classified by another signal — don't double-count
     img.classList.remove("realview-scanning");
@@ -166,9 +205,15 @@
         if (src) countedAiSrcs.add(src);
         flaggedCount++;
         safeSendMessage({ type: "realview-flagged-count", count: flaggedCount });
+        if (verdict.layer) recordStat("ai", verdict.layer);
       }
-    } else if (verdict.verdict === "real" && settings.tagReal) {
-      img.classList.add("realview-real-tagged");
+    } else if (verdict.verdict === "real") {
+      if (settings.tagReal) img.classList.add("realview-real-tagged");
+      const src = img.currentSrc || img.src;
+      if (verdict.layer && (!src || !countedRealSrcs.has(src))) {
+        if (src) countedRealSrcs.add(src);
+        recordStat("real", verdict.layer);
+      }
     }
   }
 
@@ -216,7 +261,7 @@
       fetchBytesViaBackground(src).then((bytes) => {
         inFlight--;
         const verdict = bytes ? RealViewDetector.scanBytes(bytes) : null;
-        if (verdict) applyVerdict(img, verdict);
+        if (verdict) applyVerdict(img, { ...verdict, layer: "metadata" });
         else {
           let willContinue = false;
           if (settings.visualDetection) { queueVisualClassification(img, src); willContinue = true; }
@@ -266,7 +311,7 @@
     if (visualResultCache.has(src)) return Promise.resolve(visualResultCache.get(src));
     return new Promise((resolve) => {
       safeSendMessage({ type: "realview-classify-visual", src }, (res) => {
-        const verdict = res && res.verdict ? { verdict: res.verdict, reason: res.reason } : null;
+        const verdict = res && res.verdict ? { verdict: res.verdict, reason: res.reason, layer: "visual" } : null;
         visualResultCache.set(src, verdict);
         resolve(verdict);
       });
@@ -358,7 +403,7 @@
       if (!(id in pinterestPinData)) continue;
       imgs.forEach((img) => {
         const verdict = RealViewDetector.classifyByDomain(pinterestPinData[id]);
-        if (verdict) applyVerdict(img, verdict);
+        if (verdict) applyVerdict(img, { ...verdict, layer: "domainList" });
       });
       pendingPinImages.delete(id);
     }
@@ -440,7 +485,7 @@
     }
 
     if (domainVerdict) {
-      applyVerdict(img, domainVerdict);
+      applyVerdict(img, { ...domainVerdict, layer: "domainList" });
       return;
     }
     if (settings.deepScan) {

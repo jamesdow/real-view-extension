@@ -37,6 +37,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   // opt-in visual model can close. Surface that once, upfront, rather than leaving
   // people to stumble on the Options page and never learn it exists.
   if (details.reason === "install") {
+    chrome.storage.local.set({ statsInstalledAt: Date.now() });
     chrome.tabs.create({ url: chrome.runtime.getURL("onboarding/onboarding.html") });
   }
 });

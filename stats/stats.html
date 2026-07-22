@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Real View — Your Stats</title>
+  <link rel="stylesheet" href="stats.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="brand"><span class="dot"></span><span>Real View</span></div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <p class="serif">Nothing to show yet.</p>
+      <p class="sub">Browse a page or two with Real View on, then come back — your stats will start filling in.</p>
+    </div>
+
+    <div id="statsContent" style="display:none;">
+
+      <div class="hero">
+        <div class="eyebrow" id="eyebrow"></div>
+        <h1 class="headline serif" id="headline"></h1>
+        <p class="sub" id="heroSub"></p>
+      </div>
+
+      <div class="grid">
+        <div class="tile">
+          <span class="num tabular" id="statTotal">0</span>
+          <span class="lbl">images scanned<br><span class="lbl-sub" id="statRate"></span></span>
+        </div>
+        <div class="tile"><span class="num real tabular" id="statReal">0</span><span class="lbl">real images</span></div>
+        <div class="tile"><span class="num ai tabular" id="statAi">0</span><span class="lbl">AI images caught</span></div>
+        <div class="tile"><span class="num tabular" id="statRealPct">0%</span><span class="lbl">of what you see is real</span></div>
+      </div>
+
+      <section id="domainSection">
+        <div class="section-head">
+          <h2>Where AI shows up most</h2>
+          <span>by % of images on that site</span>
+        </div>
+        <div class="card">
+          <div id="domainRows"></div>
+        </div>
+      </section>
+
+      <section id="layerSection">
+        <div class="section-head">
+          <h2>How it caught them</h2>
+          <span>by detection layer</span>
+        </div>
+        <div class="card">
+          <div class="layers" id="layerBars"></div>
+          <div class="layer-legend">
+            <span class="item"><span class="swatch metadata"></span>Metadata tags</span>
+            <span class="item"><span class="swatch domain"></span>Known AI domains</span>
+            <span class="item"><span class="swatch visual"></span>Visual model</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>The fun bits</h2>
+          <span></span>
+        </div>
+        <div class="fun-grid">
+          <div class="fun-card">
+            <span class="emoji" aria-hidden="true">🔥</span>
+            <div><span class="num tabular" id="statStreak">0</span><br><span class="lbl">longest real-image streak</span></div>
+          </div>
+          <div class="fun-card">
+            <span class="emoji" aria-hidden="true">🧑‍⚖️</span>
+            <div><span class="num tabular" id="statCorrections">0</span><br><span class="lbl">times you corrected it</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Share your stats</h2>
+          <span></span>
+        </div>
+        <div class="card">
+          <p class="share-preview" id="sharePreview"></p>
+          <div class="share-row">
+            <a class="share-btn primary" id="shareX" href="#" target="_blank" rel="noopener">Share on X</a>
+            <a class="share-btn" id="shareBluesky" href="#" target="_blank" rel="noopener">Share on Bluesky</a>
+            <a class="share-btn" id="shareReddit" href="#" target="_blank" rel="noopener">Share on Reddit</a>
+            <a class="share-btn" id="shareLinkedin" href="#" target="_blank" rel="noopener">Share on LinkedIn</a>
+            <a class="share-btn" id="shareFacebook" href="#" target="_blank" rel="noopener">Share on Facebook</a>
+            <button class="share-btn" type="button" id="shareCopy">Copy text</button>
+          </div>
+          <p class="share-note">X, Bluesky, and Reddit post your actual numbers. LinkedIn and Facebook only accept a link to share — they'll show it with room for you to add your own caption.</p>
+        </div>
+      </section>
+
+      <div class="footnote">
+        All of this stays on your device — nothing is ever sent anywhere.
+        <br>
+        <button type="button" id="resetBtn">Reset my stats</button>
+      </div>
+
+    </div>
+  </div>
+  <script src="stats.js"></script>
+</body>
+</html>
