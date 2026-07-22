@@ -254,11 +254,24 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.status === "loading") chrome.action.setBadgeText({ text: "", tabId });
 });
 
+// Neither fetch below had a timeout originally — a single image host that hangs (never errors,
+// just never finishes) permanently occupies one of content.js's small in-flight slots
+// (MAX_IN_FLIGHT=4, MAX_VISUAL_IN_FLIGHT=2). A handful of these across a browsing session is
+// enough to fully stall that page's scan queue, with nothing about it obviously wrong —
+// matching reports of the scanner intermittently "getting stuck" with no clear cause. Both
+// fetches below now abort after a timeout, which content.js already treats as a normal miss
+// (resolves to a null verdict for that one image) rather than blocking anything else.
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 // Fetch just enough of the file (metadata lives near the front) via the background
 // service worker, which — unlike a content script — isn't bound by the page's CORS
 // policy for origins covered by host_permissions.
 async function fetchBytes(src) {
-  const res = await fetch(src, { headers: { Range: "bytes=0-131071" } });
+  const res = await fetchWithTimeout(src, { headers: { Range: "bytes=0-131071" } }, 10000);
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   let binary = "";
@@ -271,9 +284,10 @@ async function fetchBytes(src) {
 // cross-origin-isolation reason as ensureModelCached() above — most image hosts don't send a
 // Cross-Origin-Resource-Policy header, and this document's COEP would otherwise block the fetch
 // outright. Chunked string-building avoids blowing the call stack that `String.fromCharCode(...bytes)`
-// hits on anything but small arrays.
+// hits on anything but small arrays. Longer timeout than fetchBytes() since this downloads the
+// whole image, not just a small leading range.
 async function fetchImageBytesBase64(src) {
-  const res = await fetch(src);
+  const res = await fetchWithTimeout(src, {}, 20000);
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const CHUNK = 8192;
